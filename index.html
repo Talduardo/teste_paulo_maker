@@ -47,11 +47,12 @@
   width: 100% !important; height: 100% !important;
   pointer-events: none; z-index: 0;
 }
-/* CSS board fallback (hidden when WebGL active) */
+/* CSS board fallback (hidden by default — shown only if WebGL fails) */
 #css-board-wrap {
   position: absolute; inset: 0; z-index: 0;
   perspective: 900px; perspective-origin: 50% 55%;
   overflow: hidden; pointer-events: none;
+  display: none; /* hidden by default, JS enables on WebGL fail */
 }
 #css-board-stage {
   position: absolute; bottom: -8%; left: 50%;
@@ -74,9 +75,7 @@
   box-shadow: inset 0 0 20px rgba(201,168,76,.1);
 }
 
-/* h-title initial state */
-.h-title { transform: translateY(32px); }
-.h-phase, .h-divider, .h-sub, .h-actions, .h-scroll { transform: translateY(32px); }
+/* Hero animations handled by CSS keyframes in style.css */
 
 /* line-reveal trigger */
 .underline-word::after {
@@ -1006,18 +1005,35 @@
       scrollProgress = Math.min(1, window.scrollY / window.innerHeight);
     }, { passive: true });
 
-    // ── Animate ────────────────────────────────────────────────────────────
+    // ── Render Loop ────────────────────────────────────────────────────────
     let af;
-    function animate() {
-      af = requestAnimationFrame(animate);
-      const t = clock.getElapsedTime();
-      clock.getDelta(); // consume delta
 
-      // Mouse parallax
-      targetRot.x += (mouse.y * 0.1 - targetRot.x) * 0.04;
-      targetRot.y += (mouse.x * 0.12 - targetRot.y) * 0.04;
-      boardGroup.rotation.x = -0.36 + targetRot.x;
-      boardGroup.rotation.y = targetRot.y;
+    // Board entrance — integrated into the main render loop
+    let entranceProgress = 0;
+    const entranceStartRotX = -1.4;
+    const entranceStartPosY = -3.2;
+    const entranceTargetRotX = -0.36;
+    const entranceTargetPosY = -1.1;
+    boardGroup.rotation.x = entranceStartRotX;
+    boardGroup.position.y = entranceStartPosY;
+
+    function animateLoop() {
+      af = requestAnimationFrame(animateLoop);
+      const t = clock.getElapsedTime();
+
+      // Entrance lerp (ease-out-quart)
+      if (entranceProgress < 1) {
+        entranceProgress = Math.min(1, entranceProgress + 0.011);
+        const ease = 1 - Math.pow(1 - entranceProgress, 4);
+        boardGroup.rotation.x = entranceStartRotX + (entranceTargetRotX - entranceStartRotX) * ease;
+        boardGroup.position.y = entranceStartPosY + (entranceTargetPosY - entranceStartPosY) * ease;
+      } else {
+        // Mouse parallax after entrance
+        targetRot.x += (mouse.y * 0.1 - targetRot.x) * 0.04;
+        targetRot.y += (mouse.x * 0.12 - targetRot.y) * 0.04;
+        boardGroup.rotation.x = entranceTargetRotX + targetRot.x;
+        boardGroup.rotation.y = targetRot.y;
+      }
 
       // Scroll camera drift
       camera.position.y = 5.5 - scrollProgress * 2.2;
@@ -1038,14 +1054,7 @@
 
       renderer.render(scene, camera);
     }
-    animate();
-
-    // GSAP entrance animation for board
-    if (typeof gsap !== 'undefined') {
-      gsap.from(boardGroup.rotation, { x: -1.5, duration: 2.8, ease: 'power4.out', delay: 0.2 });
-      gsap.from(boardGroup.position, { y: -3, duration: 2.8, ease: 'power4.out', delay: 0.2 });
-      gsap.from(boardGroup, { onUpdate: () => {}, delay: 0.2, duration: 0.01 });
-    }
+    animateLoop();
   }
 
   // ─── CSS Board Fallback ─────────────────────────────────────────────────
@@ -1185,17 +1194,14 @@
       gsap.ticker.lagSmoothing(0);
     }
 
-    // Hero entrance
-    const tl = gsap.timeline({ delay: 0.3 });
-    tl.to('.h-phase',   { opacity: 1, y: 0, duration: .9, ease: 'power3.out' })
-      .to('.h-title',   { opacity: 1, y: 0, duration: 1.0, ease: 'power3.out' }, '-=.5')
-      .to('.h-divider', { opacity: 1, y: 0, duration: .8, ease: 'power3.out' }, '-=.6')
-      .to('.h-sub',     { opacity: 1, y: 0, duration: .9, ease: 'power3.out' }, '-=.55')
-      .to('.h-actions', { opacity: 1, y: 0, duration: .9, ease: 'power3.out' }, '-=.55')
-      .to('.h-scroll',  { opacity: 1, y: 0, duration: .8, ease: 'power3.out' }, '-=.4')
-      .add(() => { const uw = document.querySelector('.underline-word'); if (uw) uw.classList.add('line-reveal'); }, '-=.3');
+    // Hero underline reveal — triggered by CSS animation delay via timeout
+    // CSS handles the fade-up, we just trigger the line at the right moment
+    setTimeout(() => {
+      const uw = document.querySelector('.underline-word');
+      if (uw) uw.classList.add('line-reveal');
+    }, 1350);
 
-    // Scroll reveals
+    // Scroll reveals — gsap-reveal classes (sections below hero)
     gsap.utils.toArray('.gsap-reveal').forEach(el => {
       gsap.to(el, { opacity: 1, y: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%' } });
     });
@@ -1237,19 +1243,19 @@
   }
 
   // ─── Init ───────────────────────────────────────────────────────────────
+  // DOMContentLoaded: lightweight UI only (cursor, nav, ham — no CDN deps)
   document.addEventListener('DOMContentLoaded', () => {
     initCursor();
     initNav();
     initProgress();
     initHam();
-    initChessEngine();
-    initMagnetic();
+  });
 
-    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-      initGSAP();
-    } else {
-      window.addEventListener('load', initGSAP);
-    }
+  // window.load: CDN-dependent features (Three.js, GSAP, Lenis)
+  window.addEventListener('load', () => {
+    initChessEngine();   // Three.js guaranteed loaded
+    initMagnetic();      // GSAP guaranteed loaded
+    initGSAP();          // GSAP + ScrollTrigger + Lenis
   });
 
 })();
