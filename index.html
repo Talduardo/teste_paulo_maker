@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+<!-- ===================================================
+     META & SEO
+     =================================================== -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Paulo Maker — Estratégia que move o mundo</title>
+<meta name="description" content="Paulo Maker — Estratégia corporativa, marketing e produção audiovisual de alto impacto. Empresas que vencem jogam estrategicamente."/>
+<meta property="og:title" content="Paulo Maker — Estratégia que move o mundo"/>
+<meta property="og:description" content="Marketing, audiovisual e branding de alto impacto para organizações que não se contentam com o ordinário."/>
+<meta property="og:type" content="website"/>
+<meta property="og:url" content="https://paulomaker.com.br"/>
+<meta name="twitter:card" content="summary_large_image"/>
+
+<!-- ===================================================
+     FONTS
+     =================================================== -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&family=Space+Mono:wght@400&display=swap" rel="stylesheet"/>
+
+<!-- ===================================================
+     EXTERNAL LIBRARIES
+     =================================================== -->
+<!-- Three.js r128 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- GSAP -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<!-- Lenis smooth scroll -->
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/bundled/lenis.min.js"></script>
+
+<!-- ===================================================
+     STYLESHEET
+     =================================================== -->
+<link rel="stylesheet" href="style.css"/>
+
+<!-- Inline critical CSS for Three.js canvas overlay -->
+<style>
+/* Three.js canvas positioned to fill hero */
+#hero { min-height: 100vh; }
+#webgl-canvas {
+  position: absolute; inset: 0;
+  width: 100% !important; height: 100% !important;
+  pointer-events: none; z-index: 0;
+}
+/* CSS board fallback (hidden when WebGL active) */
+#css-board-wrap {
+  position: absolute; inset: 0; z-index: 0;
+  perspective: 900px; perspective-origin: 50% 55%;
+  overflow: hidden; pointer-events: none;
+}
+#css-board-stage {
+  position: absolute; bottom: -8%; left: 50%;
+  width: min(1100px, 140vw); aspect-ratio: 1/1;
+  transform: translateX(-50%) rotateX(55deg);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+#css-board-grid {
+  position: absolute; inset: 0;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+}
+.board-cell { border: 1px solid rgba(201,168,76,.04); transition: background .6s; }
+.board-cell.light  { background: rgba(255,255,255,.024); }
+.board-cell.dark   { background: rgba(0,0,0,.5); }
+.board-cell.active-glow {
+  background: rgba(201,168,76,.13) !important;
+  box-shadow: inset 0 0 20px rgba(201,168,76,.1);
+}
+
+/* h-title initial state */
+.h-title { transform: translateY(32px); }
+.h-phase, .h-divider, .h-sub, .h-actions, .h-scroll { transform: translateY(32px); }
+
+/* line-reveal trigger */
+.underline-word::after {
+  content: ''; position: absolute; left: 0; bottom: -.05em;
+  width: 100%; height: 1px; background: var(--gold); opacity: .4;
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .85s cubic-bezier(.16,1,.3,1) 0s;
+}
+.underline-word.line-reveal::after { transform: scaleX(1); }
+
+/* bg orbs */
+.h-orb {
+  position: absolute; border-radius: 50%;
+  filter: blur(90px); pointer-events: none; z-index: 0;
+}
+.h-orb-1 {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(201,168,76,.065) 0%, transparent 70%);
+  top: -10%; left: -5%;
+  animation: orbDrift1 18s ease-in-out infinite;
+}
+.h-orb-2 {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(201,168,76,.045) 0%, transparent 70%);
+  bottom: 0; right: 5%;
+  animation: orbDrift2 22s ease-in-out infinite;
+}
+@keyframes orbDrift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,30px)} }
+@keyframes orbDrift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,-40px)} }
+
+/* gold corner accent (decorative geometric) */
+.gold-corner {
+  position: absolute; pointer-events: none; z-index: 2;
+  width: 80px; height: 80px; opacity: .25;
+}
+.gold-corner-tl { top: 22%; left: 8%; }
+.gold-corner-br { bottom: 22%; right: 8%; transform: rotate(180deg); }
+
+/* Floating SVG pieces in hero — CSS layer */
+.h-piece-css {
+  position: absolute; pointer-events: none;
+  color: var(--gold); z-index: 5; will-change: transform;
+  animation: cpFloat1 12s ease-in-out infinite;
+}
+.h-king-css { width: min(440px, 46vw); right: -30px; bottom: -50px; opacity: .04; animation-delay: 0s; }
+.h-queen-css { width: min(200px, 24vw); left: 4%; bottom: 5%; opacity: .028; animation-delay: 3s; }
+.h-knight-css { width: min(160px, 20vw); left: 3%; top: 18%; opacity: .024; animation-delay: 6s; }
+.h-rook-css { width: min(130px, 16vw); right: 7%; top: 22%; opacity: .022; animation-delay: 9s; }
+
+/* Section bg pieces */
+.sec-piece {
+  position: absolute; pointer-events: none; color: var(--gold); z-index: 0;
+  animation: cpFloat2 14s ease-in-out infinite;
+}
+
+/* Glassmorphism panel for contact CTA area */
+.glass-panel {
+  background: rgba(201,168,76,.04);
+  border: 1px solid rgba(201,168,76,.1);
+  backdrop-filter: blur(20px);
+  padding: 56px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.glass-panel::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: .5;
+}
+
+/* Events queen bg */
+.ev-bg-queen {
+  position: absolute; right: -10px; top: 50%;
+  transform: translateY(-50%);
+  width: min(360px, 38vw);
+  pointer-events: none; color: var(--gold); opacity: .03;
+  animation: cpFloatQ 12s ease-in-out .5s infinite;
+}
+@keyframes cpFloatQ { 0%,100%{transform:translateY(-50%) scale(1)} 50%{transform:translateY(calc(-50% - 14px)) scale(1.02)} }
+
+/* Glow text utility */
+.glow-text { text-shadow: 0 0 40px rgba(201,168,76,.25), 0 0 80px rgba(201,168,76,.12); }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div id="cur-dot"></div>
+<div id="cur-ring"></div>
+<div id="cur-label"></div>
+
+<!-- ═══════════════════════════════════════
+     NAVIGATION
+     ═══════════════════════════════════════ -->
+<nav id="topnav" role="navigation" aria-label="Navegação principal">
+  <a href="#" class="nav-logo" aria-label="Paulo Maker — página inicial">
+    <svg class="nav-logo-king" viewBox="0 0 40 52" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="20" y1="2" x2="20" y2="10" stroke-width="2"/><line x1="15" y1="6" x2="25" y2="6" stroke-width="2"/>
+      <path d="M11 13 C11 9 14 7 20 7 C26 7 29 9 29 13 L27 19 L13 19 Z" stroke-width="1.5" fill="currentColor" fill-opacity=".2"/>
+      <path d="M10 21 L30 21 L32 29 L8 29 Z" stroke-width="1.5" fill="currentColor" fill-opacity=".15"/>
+      <rect x="6" y="31" width="28" height="7" rx="1.5" stroke-width="1.5" fill="currentColor" fill-opacity=".12"/>
+      <rect x="3" y="39" width="34" height="8" rx="2" stroke-width="1.5" fill="currentColor" fill-opacity=".12"/>
+      <rect x="4" y="48" width="32" height="4" rx="1.5" stroke-width="1.5" fill="currentColor" fill-opacity=".1"/>
+    </svg>
+    Paulo<b>Maker</b>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#team">Equipe</a></li>
+    <li><a href="#services">Serviços</a></li>
+    <li><a href="#events">Eventos</a></li>
+    <li><a href="#contact" class="nav-cta">Contato</a></li>
+  </ul>
+  <button class="ham-btn" id="ham-btn" aria-label="Abrir menu" aria-expanded="false" aria-controls="mob-menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- Mobile Menu -->
+<div id="mob-menu" role="dialog" aria-label="Menu de navegação" aria-modal="true">
+  <div class="mob-inner">
+    <div class="mob-eyebrow">Navegação</div>
+    <ul class="mob-links">
+      <li><a href="#team" class="mob-nav-link"><span class="mob-num">01</span> Equipe</a></li>
+      <li><a href="#services" class="mob-nav-link"><span class="mob-num">02</span> Serviços</a></li>
+      <li><a href="#events" class="mob-nav-link"><span class="mob-num">03</span> Eventos</a></li>
+      <li><a href="#contact" class="mob-nav-link"><span class="mob-num">04</span> Contato</a></li>
+    </ul>
+  </div>
+  <div class="mob-footer">
+    <span class="mob-footer-logo">Paulo<b>Maker</b></span>
+    <span style="font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gray)">Toque para fechar</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     HERO — WebGL Chess Experience
+     ═══════════════════════════════════════ -->
+<section id="hero" aria-label="Paulo Maker — Transformamos visão em legado">
+
+  <!-- WebGL canvas — Three.js renders here -->
+  <canvas id="webgl-canvas" aria-hidden="true"></canvas>
+
+  <!-- CSS Fallback board (visible only if WebGL fails) -->
+  <div id="css-board-wrap" aria-hidden="true">
+    <div id="css-board-stage">
+      <div id="css-board-grid"></div>
+    </div>
+  </div>
+
+  <!-- Ambient orbs -->
+  <div class="h-orb h-orb-1" aria-hidden="true"></div>
+  <div class="h-orb h-orb-2" aria-hidden="true"></div>
+
+  <!-- Vertical accent lines -->
+  <div class="h-vline h-vline-1" aria-hidden="true"></div>
+  <div class="h-vline h-vline-2" aria-hidden="true"></div>
+
+  <!-- Gold corner accents -->
+  <svg class="gold-corner gold-corner-tl" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+    <path d="M0 80 L0 0 L80 0" stroke="rgba(201,168,76,.6)"/>
+    <path d="M10 80 L10 10 L80 10" stroke="rgba(201,168,76,.2)"/>
+  </svg>
+  <svg class="gold-corner gold-corner-br" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true">
+    <path d="M0 80 L0 0 L80 0" stroke="rgba(201,168,76,.6)"/>
+    <path d="M10 80 L10 10 L80 10" stroke="rgba(201,168,76,.2)"/>
+  </svg>
+
+  <!-- CSS floating pieces (always visible, WebGL pieces are 3D) -->
+  <div class="h-piece-css h-king-css" aria-hidden="true">
+    <svg viewBox="0 0 100 120" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="50" y1="4" x2="50" y2="22" stroke-width="3.5"/><line x1="38" y1="12" x2="62" y2="12" stroke-width="3.5"/>
+      <path d="M32 26 C32 19 39 15 50 15 C61 15 68 19 68 26 L65 40 L35 40 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.06"/>
+      <path d="M30 42 L70 42 L74 60 L26 60 Z" stroke-width="2" fill="currentColor" fill-opacity="0.05"/>
+      <rect x="20" y="62" width="60" height="12" rx="2" stroke-width="2" fill="currentColor" fill-opacity="0.04"/>
+      <rect x="13" y="76" width="74" height="14" rx="3" stroke-width="2" fill="currentColor" fill-opacity="0.04"/>
+      <rect x="10" y="92" width="80" height="10" rx="3" stroke-width="2" fill="currentColor" fill-opacity="0.03"/>
+    </svg>
+  </div>
+  <div class="h-piece-css h-queen-css" aria-hidden="true">
+    <svg viewBox="0 0 90 115" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="14" r="6" stroke-width="2"/><circle cx="30" cy="7" r="6" stroke-width="2"/>
+      <circle cx="45" cy="5" r="6" stroke-width="2"/><circle cx="60" cy="7" r="6" stroke-width="2"/>
+      <circle cx="78" cy="14" r="6" stroke-width="2"/>
+      <path d="M12 18 L12 44 L78 44 L78 18 L60 34 L45 12 L30 34 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+    </svg>
+  </div>
+  <div class="h-piece-css h-knight-css" aria-hidden="true">
+    <svg viewBox="0 0 80 110" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 95 L22 90 C22 84 16 78 14 68 C10 55 14 40 22 30 C27 22 32 16 36 12 C40 8 44 5 49 5 C54 5 58 8 60 13 C63 18 62 26 59 32 C56 37 52 40 52 47 C52 54 57 58 62 61 C67 64 68 68 66 75 C64 81 57 84 53 87 C50 89 49 92 49 96 L49 101" stroke-width="2.5"/>
+      <circle cx="55" cy="17" r="2.5" fill="currentColor"/>
+    </svg>
+  </div>
+  <div class="h-piece-css h-rook-css" aria-hidden="true">
+    <svg viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="10" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+      <rect x="41" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+      <rect x="72" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+      <line x1="28" y1="15" x2="41" y2="15" stroke-width="2.5"/><line x1="59" y1="15" x2="72" y2="15" stroke-width="2.5"/>
+      <path d="M10 25 L90 25 L90 68 L10 68 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.06"/>
+      <rect x="6" y="70" width="88" height="12" rx="2" stroke-width="2" fill="currentColor" fill-opacity="0.05"/>
+    </svg>
+  </div>
+
+  <!-- Hero Content -->
+  <div class="h-content">
+    <div class="h-phase">
+      <span class="h-phase-dot" aria-hidden="true"></span>
+      Abertura — Move 1
+    </div>
+
+    <h1 class="h-title glow-text">
+      Transformamos<br>
+      <em>visão</em> em <span class="underline-word">legado</span>
+    </h1>
+
+    <div class="h-divider" aria-hidden="true">
+      <svg class="h-divider-piece" viewBox="0 0 40 52" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="20" cy="8" r="6" stroke-width="2"/>
+        <path d="M15 14 C13 19 11 23 10 26 L30 26 C29 23 27 19 25 14 Z" stroke-width="1.8" fill="currentColor" fill-opacity=".1"/>
+        <rect x="5" y="40" width="30" height="6" rx="1.5" stroke-width="1.8" fill="currentColor" fill-opacity=".08"/>
+      </svg>
+    </div>
+
+    <p class="h-sub">Empresas que vencem não jogam por sorte. Jogam estrategicamente. Marketing, audiovisual e branding de alto impacto para organizações que não se contentam com o ordinário.</p>
+
+    <div class="h-actions">
+      <span class="btn-magnetic">
+        <a href="#services" class="btn-gold" data-cursor="Explorar">
+          Conheça Nossos Serviços
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </span>
+      <span class="btn-magnetic">
+        <a href="#contact" class="btn-ghost" data-cursor="Falar">Iniciar Conversa</a>
+      </span>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div class="h-scroll" aria-hidden="true">
+    <div class="h-sline"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     STATS
+     ═══════════════════════════════════════ -->
+<section id="stats" aria-label="Números que nos definem">
+  <div class="stats-inner">
+    <div class="stat gsap-reveal">
+      <div class="stat-num" data-count="4">0<sup>+</sup></div>
+      <div class="stat-lbl">Anos de Mercado</div>
+    </div>
+    <div class="stats-sep gsap-reveal" aria-hidden="true"></div>
+    <div class="stat gsap-reveal">
+      <div class="stat-num" data-count="200">0<sup>+</sup></div>
+      <div class="stat-lbl">Clientes Atendidos</div>
+    </div>
+    <div class="stats-sep gsap-reveal" aria-hidden="true"></div>
+    <div class="stat gsap-reveal">
+      <div class="stat-num" data-count="98">0<sup>%</sup></div>
+      <div class="stat-lbl">Taxa de Satisfação</div>
+    </div>
+    <div class="stats-sep gsap-reveal" aria-hidden="true"></div>
+    <div class="stat gsap-reveal">
+      <div class="stat-num" data-count="9">0</div>
+      <div class="stat-lbl">Estados de Atuação</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     TEAM
+     ═══════════════════════════════════════ -->
+<section id="team" aria-label="Nossa equipe">
+  <div class="sec-phase" style="top:-40px;left:-20px" aria-hidden="true">Equipe</div>
+  <div class="phase-label" aria-hidden="true">Fase II — Controle do Centro</div>
+
+  <!-- Bishop bg piece -->
+  <div class="sec-piece" style="top:40px;right:-20px;width:min(360px,38vw);opacity:.03;animation-delay:1s" aria-hidden="true">
+    <svg viewBox="0 0 90 115" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="45" cy="9" r="7" stroke-width="2.5" fill="currentColor" fill-opacity="0.08"/>
+      <line x1="45" y1="4" x2="45" y2="14" stroke-width="1.5"/><line x1="40" y1="9" x2="50" y2="9" stroke-width="1.5"/>
+      <path d="M45 16 C34 21 24 34 26 46 L64 46 C66 34 56 21 45 16 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <line x1="29" y1="34" x2="61" y2="34" stroke-width="1.2" stroke-opacity="0.6"/>
+      <path d="M26 48 L64 48 L68 64 L22 64 Z" stroke-width="2" fill="currentColor" fill-opacity="0.06"/>
+      <rect x="16" y="66" width="58" height="12" rx="2" stroke-width="2" fill="currentColor" fill-opacity="0.05"/>
+      <rect x="10" y="80" width="70" height="13" rx="3" stroke-width="2" fill="currentColor" fill-opacity="0.05"/>
+    </svg>
+  </div>
+
+  <div class="sec-head gsap-reveal">
+    <div class="sec-tag">Nossa Equipe</div>
+    <h2 class="sec-title">As mentes por trás<br>do nosso <em>sucesso</em></h2>
+    <div class="sec-rule"></div>
+  </div>
+
+  <div class="team-grid">
+    <!-- PAULO HENRIQUE -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_ph.jpeg" alt="Paulo Henrique — Diretor Criativo" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Paulo Henrique</div>
+        <div class="team-role">Diretor Criativo</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 40 52" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="20" y1="2" x2="20" y2="10" stroke-width="2"/><line x1="15" y1="6" x2="25" y2="6" stroke-width="2"/>
+        <path d="M11 13 C11 9 14 7 20 7 C26 7 29 9 29 13 L27 19 L13 19 Z" stroke-width="1.5" fill="currentColor" fill-opacity=".3"/>
+        <path d="M10 21 L30 21 L32 29 L8 29 Z" stroke-width="1.5" fill="currentColor" fill-opacity=".2"/>
+        <rect x="5" y="31" width="30" height="6" rx="1.5" stroke-width="1.5" fill="currentColor" fill-opacity=".18"/>
+      </svg>
+    </div>
+    <!-- EDUARDO -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_eduardo.jpeg" alt="Eduardo Holanda — Desenvolvedor de Software" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Eduardo Holanda</div>
+        <div class="team-role">Desenvolvedor de Software</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 80 110" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M22 90 C22 84 16 78 14 68 C10 55 14 40 22 30 C27 22 32 16 36 12 C40 8 44 5 49 5 C54 5 58 8 60 13 C63 18 62 26 59 32 C56 37 52 40 52 47 C52 54 57 58 62 61 C67 64 68 68 66 75 C64 81 57 84 53 87 L49 95" stroke-width="2.2"/>
+        <circle cx="54" cy="17" r="2" fill="currentColor"/>
+      </svg>
+    </div>
+    <!-- EMMYLLY -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_emmylly.jpeg" alt="Emmylly — Designer" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Emmylly</div>
+        <div class="team-role">Designer</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 90 115" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="45" cy="9" r="7" stroke-width="2" fill="currentColor" fill-opacity=".2"/>
+        <path d="M45 16 C34 21 24 34 26 46 L64 46 C66 34 56 21 45 16 Z" stroke-width="2" fill="currentColor" fill-opacity=".1"/>
+      </svg>
+    </div>
+    <!-- GIAN -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_gian.jpg" alt="Gian Lucca — Video Maker" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Gian Lucca</div>
+        <div class="team-role">Video Maker</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="10" y="5" width="16" height="18" rx="2" stroke-width="2" fill="currentColor" fill-opacity=".15"/>
+        <rect x="42" y="5" width="16" height="18" rx="2" stroke-width="2" fill="currentColor" fill-opacity=".15"/>
+        <rect x="74" y="5" width="16" height="18" rx="2" stroke-width="2" fill="currentColor" fill-opacity=".15"/>
+        <path d="M10 23 L90 23 L90 64 L10 64 Z" stroke-width="2" fill="currentColor" fill-opacity=".08"/>
+      </svg>
+    </div>
+    <!-- DARA -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_dara.jpeg" alt="Dara Araujo — Video Maker" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Dara Araujo</div>
+        <div class="team-role">Video Maker</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 60 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="30" cy="14" r="10" stroke-width="2" fill="currentColor" fill-opacity=".15"/>
+        <path d="M23 24 C20 30 18 36 17 40 L43 40 C42 36 40 30 37 24 Z" stroke-width="1.8" fill="currentColor" fill-opacity=".1"/>
+      </svg>
+    </div>
+    <!-- ELLIS -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_ellis.jpeg" alt="Ellis Fernanda — Video Maker e Modelo" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Ellis Fernanda</div>
+        <div class="team-role">Video Maker | Modelo</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 60 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="30" cy="14" r="10" stroke-width="2" fill="currentColor" fill-opacity=".15"/>
+        <path d="M23 24 C20 30 18 36 17 40 L43 40 C42 36 40 30 37 24 Z" stroke-width="1.8" fill="currentColor" fill-opacity=".1"/>
+      </svg>
+    </div>
+    <!-- ADÃO -->
+    <div class="team-card gsap-reveal-scale">
+      <img class="team-photo" src="foto_adam.jpeg" alt="Adão Sameson — Gestor RH" loading="lazy"/>
+      <div class="team-info">
+        <div class="team-name">Adão Sameson</div>
+        <div class="team-role">Gestor RH</div>
+        <div class="team-bar"></div>
+      </div>
+      <svg class="team-rank" viewBox="0 0 60 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="30" cy="14" r="10" stroke-width="2" fill="currentColor" fill-opacity=".15"/>
+        <path d="M23 24 C20 30 18 36 17 40 L43 40 C42 36 40 30 37 24 Z" stroke-width="1.8" fill="currentColor" fill-opacity=".1"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- Chess divider -->
+<div class="chess-div" style="background:var(--black)" aria-hidden="true">
+  <svg class="chess-div-piece" viewBox="0 0 90 115" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="14" r="6" stroke-width="2"/><circle cx="30" cy="7" r="6" stroke-width="2"/>
+    <circle cx="45" cy="5" r="6" stroke-width="2"/><circle cx="60" cy="7" r="6" stroke-width="2"/>
+    <circle cx="78" cy="14" r="6" stroke-width="2"/>
+    <path d="M12 18 L12 44 L78 44 L78 18 L60 34 L45 12 L30 34 Z" stroke-width="2.2" fill="currentColor" fill-opacity=".07"/>
+  </svg>
+</div>
+
+<!-- ═══════════════════════════════════════
+     SERVICES
+     ═══════════════════════════════════════ -->
+<section id="services" aria-label="Nossos serviços">
+  <div class="sec-phase" style="top:-40px;right:-20px;text-align:right" aria-hidden="true">Serviços</div>
+  <div class="phase-label" aria-hidden="true">Fase III — Desenvolvimento</div>
+
+  <!-- Background rook -->
+  <div class="sec-piece" style="left:-30px;bottom:0;width:min(360px,38vw);opacity:.028;animation-delay:3s" aria-hidden="true">
+    <svg viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="10" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+      <rect x="41" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+      <rect x="72" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+      <line x1="28" y1="15" x2="41" y2="15" stroke-width="2.5"/><line x1="59" y1="15" x2="72" y2="15" stroke-width="2.5"/>
+      <path d="M10 25 L90 25 L90 68 L10 68 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.06"/>
+      <rect x="6" y="70" width="88" height="12" rx="2" stroke-width="2" fill="currentColor" fill-opacity="0.05"/>
+      <rect x="2" y="84" width="96" height="14" rx="3" stroke-width="2" fill="currentColor" fill-opacity="0.05"/>
+    </svg>
+  </div>
+
+  <div class="sec-head gsap-reveal" style="position:relative;z-index:1">
+    <div class="sec-tag">O Que Fazemos</div>
+    <h2 class="sec-title">Serviços de <em>excelência</em><br>para resultados reais</h2>
+    <div class="sec-rule"></div>
+  </div>
+
+  <div class="svc-grid">
+    <div class="svc-card gsap-reveal">
+      <div class="svc-num">01</div>
+      <svg class="svc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v18h18"/><path d="m7 16 4-4 4 4 5-5"/></svg>
+      <div class="svc-title">Estratégia Corporativa | Marketing</div>
+      <div class="svc-desc">Planos estratégicos que alinham seus objetivos ao mercado global, gerando resultados sustentáveis e vantagem competitiva duradoura.</div>
+      <a href="#contact" class="svc-more" aria-label="Iniciar projeto de Estratégia Corporativa">Iniciar projeto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="svc-card gsap-reveal">
+      <div class="svc-num">02</div>
+      <svg class="svc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="svc-title">Gestão de Alto Impacto | Serviços de RH</div>
+      <div class="svc-desc">Consultoria executiva para transformação organizacional e construção de cultura de alto desempenho com resultados mensuráveis.</div>
+      <a href="#contact" class="svc-more">Iniciar projeto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="svc-card gsap-reveal">
+      <div class="svc-num">03</div>
+      <svg class="svc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      <div class="svc-title">Inovação & Tecnologia | Software e Suporte</div>
+      <div class="svc-desc">Tecnologias de ponta e metodologias ágeis que posicionam sua empresa consistentemente à frente da concorrência.</div>
+      <a href="#contact" class="svc-more">Iniciar projeto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="svc-card gsap-reveal">
+      <div class="svc-num">04</div>
+      <svg class="svc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <div class="svc-title">Campanhas Branding Institucional</div>
+      <div class="svc-desc">Programas de mentoria e capacitação para formar lideranças que inspiram equipes e constroem legados duradouros.</div>
+      <a href="#contact" class="svc-more">Iniciar projeto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="svc-card gsap-reveal">
+      <div class="svc-num">05</div>
+      <svg class="svc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      <div class="svc-title">Branding Institucional</div>
+      <div class="svc-desc">Identidades corporativas que comunicam autoridade, sofisticação e propósito de forma memorável e coerente.</div>
+      <a href="#contact" class="svc-more">Iniciar projeto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+    <div class="svc-card gsap-reveal">
+      <div class="svc-num">06</div>
+      <svg class="svc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <div class="svc-title">Cobertura de Eventos</div>
+      <div class="svc-desc">Produção audiovisual completa para seus eventos: captação, edição e conteúdos estratégicos que ampliam alcance e posicionamento.</div>
+      <a href="#contact" class="svc-more">Iniciar projeto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    </div>
+  </div>
+</section>
+
+<!-- Chess divider -->
+<div class="chess-div" style="background:var(--black-2)" aria-hidden="true">
+  <svg class="chess-div-piece" viewBox="0 0 100 110" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="10" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+    <rect x="41" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+    <rect x="72" y="5" width="18" height="20" rx="2" stroke-width="2.5" fill="currentColor" fill-opacity="0.07"/>
+    <path d="M10 25 L90 25 L90 68 L10 68 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.06"/>
+  </svg>
+</div>
+
+<!-- ═══════════════════════════════════════
+     EVENTS
+     ═══════════════════════════════════════ -->
+<section id="events" aria-label="Eventos realizados">
+  <div class="sec-phase" style="bottom:-20px;left:-20px" aria-hidden="true">Eventos</div>
+  <div class="phase-label" aria-hidden="true">Fase IV — Meio-Jogo</div>
+
+  <!-- Queen bg -->
+  <div class="ev-bg-queen" aria-hidden="true">
+    <svg viewBox="0 0 90 115" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="14" r="6.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <circle cx="30" cy="7" r="6.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <circle cx="45" cy="5" r="6.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <circle cx="60" cy="7" r="6.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <circle cx="78" cy="14" r="6.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <path d="M12 20 L12 46 L78 46 L78 20 L60 36 L45 13 L30 36 Z" stroke-width="2.4" fill="currentColor" fill-opacity="0.08"/>
+      <path d="M24 48 L66 48 L70 66 L20 66 Z" stroke-width="2.2" fill="currentColor" fill-opacity="0.07"/>
+      <rect x="14" y="68" width="62" height="13" rx="2" stroke-width="2.2" fill="currentColor" fill-opacity="0.06"/>
+      <rect x="8" y="83" width="74" height="14" rx="3" stroke-width="2.2" fill="currentColor" fill-opacity="0.06"/>
+    </svg>
+  </div>
+
+  <div class="sec-head gsap-reveal">
+    <div class="sec-tag">Eventos Já Realizados</div>
+    <h2 class="sec-title">Agenda de <em>conexões</em><br>e excelência</h2>
+    <div class="sec-rule"></div>
+  </div>
+
+  <div class="ev-wrap">
+    <div class="ev-spine" aria-hidden="true"></div>
+
+    <!-- Event 1 -->
+    <article class="ev-item gsap-reveal">
+      <div class="ev-dot" aria-hidden="true">
+        <svg class="ev-pawn" viewBox="0 0 40 60" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="10" r="7.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M15 18 C13 23 11 27 10 31 L30 31 C29 27 27 23 25 18 Z" stroke-width="2" fill="currentColor" fill-opacity="0.12"/>
+          <path d="M6 33 L34 33 L37 44 L3 44 Z" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="1" y="46" width="38" height="7" rx="1.5" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="0" y="55" width="40" height="5" rx="2" stroke-width="1.8" fill="currentColor" fill-opacity="0.08"/>
+        </svg>
+      </div>
+      <div class="ev-date"><time datetime="2025-12-18">18 Dezembro 2025</time> · Fortaleza, CE</div>
+      <h3 class="ev-title">Inauguração do Instituto Full Face Dra. Luana Pinheiro</h3>
+      <p class="ev-desc">Tivemos a honra de prestigiar o lançamento do Instituto Full Face da Dra. Luana Pinheiro, um evento marcado por alto nível de sofisticação e posicionamento. Estivemos presentes como convidados, vivenciando um ambiente estratégico que proporcionou conexões valiosas com profissionais relevantes do marketing e do meio empresarial.</p>
+      <span class="ev-badge">Presencial</span>
+      <a href="https://www.instagram.com/p/DSa4io8Eo_0/?igsh=MXF0Z2hxejFjM3ltYg%3D%3D" target="_blank" rel="noopener noreferrer" class="ig-link">
+        <span class="ig-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span>
+        <span>Ver no Instagram</span>
+        <span style="display:flex;align-items:center"><span class="arr-line"></span><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-1px;flex-shrink:0"><path d="M1 5h8M5 1l4 4-4 4"/></svg></span>
+      </a>
+    </article>
+
+    <!-- Event 2 -->
+    <article class="ev-item gsap-reveal">
+      <div class="ev-dot" aria-hidden="true">
+        <svg class="ev-pawn" viewBox="0 0 40 60" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="10" r="7.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M15 18 C13 23 11 27 10 31 L30 31 C29 27 27 23 25 18 Z" stroke-width="2" fill="currentColor" fill-opacity="0.12"/>
+          <path d="M6 33 L34 33 L37 44 L3 44 Z" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="1" y="46" width="38" height="7" rx="1.5" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="0" y="55" width="40" height="5" rx="2" stroke-width="1.8" fill="currentColor" fill-opacity="0.08"/>
+        </svg>
+      </div>
+      <div class="ev-date"><time datetime="2026-02-18">18 Fevereiro 2026</time> · Quixeramobim, CE</div>
+      <h3 class="ev-title">Cobertura do Carna Central (Conecta)</h3>
+      <p class="ev-desc">Estivemos presentes no Carna Central de Quixeramobim, em parceria com a Conecta, realizando a cobertura completa do evento. Nossa equipe foi responsável pela captação dos principais momentos, registrando grandes nomes como Zé Vaqueiro, Jonas Esticado, Mara Pavanelly e Lagosta Bronzeada.</p>
+      <span class="ev-badge">Presencial</span>
+      <a href="https://www.instagram.com/reels/DU5uu_tjfbD/" target="_blank" rel="noopener noreferrer" class="ig-link">
+        <span class="ig-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span>
+        <span>Ver no Instagram</span>
+        <span style="display:flex;align-items:center"><span class="arr-line"></span><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-1px;flex-shrink:0"><path d="M1 5h8M5 1l4 4-4 4"/></svg></span>
+      </a>
+    </article>
+
+    <!-- Event 3 -->
+    <article class="ev-item gsap-reveal">
+      <div class="ev-dot" aria-hidden="true">
+        <svg class="ev-pawn" viewBox="0 0 40 60" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="10" r="7.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M15 18 C13 23 11 27 10 31 L30 31 C29 27 27 23 25 18 Z" stroke-width="2" fill="currentColor" fill-opacity="0.12"/>
+          <path d="M6 33 L34 33 L37 44 L3 44 Z" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="1" y="46" width="38" height="7" rx="1.5" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="0" y="55" width="40" height="5" rx="2" stroke-width="1.8" fill="currentColor" fill-opacity="0.08"/>
+        </svg>
+      </div>
+      <div class="ev-date"><time datetime="2025-11-04">04 Novembro 2025</time> · Fortaleza, CE</div>
+      <h3 class="ev-title">Lançamento da Summer Collection — VINOAH</h3>
+      <p class="ev-desc">Fomos convidados para prestigiar o lançamento da coleção Summer Collection da VINOAH, realizado em Fortaleza. Estar presente nesse momento foi uma experiência marcante para a equipe, em um evento que reuniu importantes nomes da moda, fortalecendo conexões e ampliando nossa visão de mercado.</p>
+      <span class="ev-badge">Presencial</span>
+      <a href="https://www.instagram.com/reels/DQpuRzRjq9L/" target="_blank" rel="noopener noreferrer" class="ig-link">
+        <span class="ig-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span>
+        <span>Ver no Instagram</span>
+        <span style="display:flex;align-items:center"><span class="arr-line"></span><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-1px;flex-shrink:0"><path d="M1 5h8M5 1l4 4-4 4"/></svg></span>
+      </a>
+    </article>
+
+    <!-- Event 4 -->
+    <article class="ev-item gsap-reveal">
+      <div class="ev-dot" aria-hidden="true">
+        <svg class="ev-pawn" viewBox="0 0 40 60" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="10" r="7.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M15 18 C13 23 11 27 10 31 L30 31 C29 27 27 23 25 18 Z" stroke-width="2" fill="currentColor" fill-opacity="0.12"/>
+          <path d="M6 33 L34 33 L37 44 L3 44 Z" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="1" y="46" width="38" height="7" rx="1.5" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="0" y="55" width="40" height="5" rx="2" stroke-width="1.8" fill="currentColor" fill-opacity="0.08"/>
+        </svg>
+      </div>
+      <div class="ev-date"><time datetime="2025-10-24">24 Outubro 2025</time> · Quixeramobim, CE</div>
+      <h3 class="ev-title">Campanha Baly Muscle Protein</h3>
+      <p class="ev-desc">Participamos do desenvolvimento da campanha de lançamento do Baly Muscle Protein, atuando em conjunto com a influenciadora fitness Jamila Andrade. Nossa equipe foi responsável pela captação e produção audiovisual, criando conteúdos estratégicos voltados para performance, estética e conexão com o público fitness.</p>
+      <span class="ev-badge">Presencial</span>
+      <a href="https://www.instagram.com/reels/DQNHN2VERaV/" target="_blank" rel="noopener noreferrer" class="ig-link">
+        <span class="ig-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span>
+        <span>Ver no Instagram</span>
+        <span style="display:flex;align-items:center"><span class="arr-line"></span><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-1px;flex-shrink:0"><path d="M1 5h8M5 1l4 4-4 4"/></svg></span>
+      </a>
+    </article>
+
+    <!-- Event 5 -->
+    <article class="ev-item gsap-reveal">
+      <div class="ev-dot" aria-hidden="true">
+        <svg class="ev-pawn" viewBox="0 0 40 60" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="20" cy="10" r="7.5" stroke-width="2.2" fill="currentColor" fill-opacity="0.15"/>
+          <path d="M15 18 C13 23 11 27 10 31 L30 31 C29 27 27 23 25 18 Z" stroke-width="2" fill="currentColor" fill-opacity="0.12"/>
+          <path d="M6 33 L34 33 L37 44 L3 44 Z" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="1" y="46" width="38" height="7" rx="1.5" stroke-width="1.8" fill="currentColor" fill-opacity="0.1"/>
+          <rect x="0" y="55" width="40" height="5" rx="2" stroke-width="1.8" fill="currentColor" fill-opacity="0.08"/>
+        </svg>
+      </div>
+      <div class="ev-date"><time datetime="2025-11-14">14 Novembro 2025</time> · Quixeramobim, CE</div>
+      <h3 class="ev-title">Conclusão da Obra — Academia FLEX</h3>
+      <p class="ev-desc">Realizamos a cobertura completa da finalização da Academia Flex, em Quixeramobim, acompanhando a entrega da obra junto à Construtora Santiago de Lima. Fomos responsáveis pela captação de imagens, edição e produção de conteúdo audiovisual, transformando os principais momentos em materiais estratégicos.</p>
+      <span class="ev-badge">Presencial</span>
+      <a href="https://www.instagram.com/reels/DRDR-8ICbU-/" target="_blank" rel="noopener noreferrer" class="ig-link">
+        <span class="ig-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></span>
+        <span>Ver no Instagram</span>
+        <span style="display:flex;align-items:center"><span class="arr-line"></span><svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-left:-1px;flex-shrink:0"><path d="M1 5h8M5 1l4 4-4 4"/></svg></span>
+      </a>
+    </article>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     CONTACT
+     ═══════════════════════════════════════ -->
+<section id="contact" aria-label="Entre em contato">
+  <div class="sec-phase" style="top:-40px;right:-20px;text-align:right" aria-hidden="true">Contato</div>
+  <div class="phase-label" aria-hidden="true">Fase VI — Xeque-Mate</div>
+
+  <!-- bg queen -->
+  <div style="position:absolute;right:-50px;top:0;width:min(480px,50vw);pointer-events:none;color:var(--gold);opacity:.035;animation:cpFloat2 18s ease-in-out infinite;z-index:0" aria-hidden="true">
+    <svg viewBox="0 0 100 128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="10" cy="16" r="7" stroke-width="2.4" fill="currentColor" fill-opacity="0.08"/>
+      <circle cx="30" cy="8" r="7" stroke-width="2.4" fill="currentColor" fill-opacity="0.08"/>
+      <circle cx="50" cy="6" r="7" stroke-width="2.4" fill="currentColor" fill-opacity="0.08"/>
+      <circle cx="70" cy="8" r="7" stroke-width="2.4" fill="currentColor" fill-opacity="0.08"/>
+      <circle cx="90" cy="16" r="7" stroke-width="2.4" fill="currentColor" fill-opacity="0.08"/>
+      <path d="M10 22 L10 50 L90 50 L90 22 L70 40 L50 14 L30 40 Z" stroke-width="2.6" fill="currentColor" fill-opacity="0.09"/>
+    </svg>
+  </div>
+
+  <div class="sec-head gsap-reveal">
+    <div class="sec-tag">Contato</div>
+    <h2 class="sec-title">Vamos construir algo<br><em>extraordinário</em></h2>
+    <div class="sec-rule"></div>
+  </div>
+
+  <div class="contact-wrap">
+    <div class="glass-panel gsap-reveal" style="max-width:600px;width:100%;text-align:center">
+      <h3 style="font-family:var(--font-display);font-size:clamp(28px,3.5vw,42px);font-weight:300;line-height:1.15;color:var(--white);margin-bottom:20px">
+        Pronto para elevar<br>seu <em style="font-style:italic;color:var(--gold-lt)">negócio</em>?
+      </h3>
+      <p style="font-size:13px;font-weight:300;line-height:1.9;color:var(--gray-md);margin-bottom:36px">Nossa equipe está disponível para entender seus desafios e propor soluções sob medida que geram impacto real e duradouro.</p>
+      <div class="ct-socials" style="justify-content:center;margin-bottom:8px">
+        <a href="https://www.linkedin.com/company/paulo-maker/posts/?feedView=all" target="_blank" rel="noopener" class="soc-btn" aria-label="LinkedIn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        </a>
+        <a href="https://www.instagram.com/paulomkt_videomaker/" target="_blank" rel="noopener" class="soc-btn" aria-label="Instagram">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        </a>
+        <a href="https://wa.me/+558881529593?text=Olá!%20Visitei%20seu%20site%20e%20gostaria%20de%20saber%20mais%20sobre%20seus%20serviços" target="_blank" rel="noopener" class="soc-btn" aria-label="WhatsApp">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+        </a>
+        <a href="https://mail.google.com/mail/u/0/#inbox?compose=new" target="_blank" rel="noopener" class="soc-btn" aria-label="E-mail">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-.904.732-1.636 1.636-1.636h.91L12 10.91l9.455-7.09h.909A1.636 1.636 0 0 1 24 5.457z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════ -->
+<footer>
+  <div class="ft-logo">
+    <svg style="width:18px;height:22px;color:var(--gold);opacity:.6;flex-shrink:0" viewBox="0 0 40 52" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="20" y1="2" x2="20" y2="10" stroke-width="2"/><line x1="15" y1="6" x2="25" y2="6" stroke-width="2"/>
+      <path d="M11 13 C11 9 14 7 20 7 C26 7 29 9 29 13 L27 19 L13 19 Z" stroke-width="1.5" fill="currentColor" fill-opacity=".2"/>
+      <path d="M10 21 L30 21 L32 29 L8 29 Z" stroke-width="1.5" fill="currentColor" fill-opacity=".15"/>
+      <rect x="6" y="31" width="28" height="7" rx="1.5" stroke-width="1.5" fill="currentColor" fill-opacity=".12"/>
+      <rect x="3" y="39" width="34" height="8" rx="2" stroke-width="1.5" fill="currentColor" fill-opacity=".12"/>
+      <rect x="4" y="48" width="32" height="4" rx="1.5" stroke-width="1.5" fill="currentColor" fill-opacity=".1"/>
+    </svg>
+    Paulo<b>Maker</b>
+  </div>
+  <nav class="ft-links" aria-label="Links do rodapé">
+    <a href="#team">Equipe</a>
+    <a href="#services">Serviços</a>
+    <a href="#events">Eventos</a>
+    <a href="#contact">Contato</a>
+  </nav>
+  <div class="ft-copy">© 2026 Paulo Maker. Todos os direitos reservados.</div>
+</footer>
+
+<!-- ═══════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════ -->
+<script>
+// ─── Inline WebGL init (self-contained, no module needed) ───────────────────
+(function() {
+  'use strict';
+
+  const isTouch = window.matchMedia('(pointer:coarse)').matches;
+  const isMobile = window.innerWidth < 768;
+
+  // ─── Three.js Chess Engine (inline, no ES module import needed) ──────────
+  function initChessEngine() {
+    const hero = document.getElementById('hero');
+    if (!hero || typeof THREE === 'undefined') {
+      initCSSBoardFallback();
+      return;
+    }
+
+    // Check WebGL support
+    try {
+      const testCanvas = document.createElement('canvas');
+      const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+      if (!gl) throw new Error('No WebGL');
+    } catch(e) {
+      console.warn('WebGL unavailable:', e);
+      initCSSBoardFallback();
+      return;
+    }
+
+    const canvas = document.getElementById('webgl-canvas');
+    if (!canvas) { initCSSBoardFallback(); return; }
+
+    const W = hero.offsetWidth, H = hero.offsetHeight;
+    const clock = new THREE.Clock();
+    const mouse = new THREE.Vector2(0, 0);
+    const targetRot = new THREE.Vector2(0, 0);
+    let scrollProgress = 0;
+    const pieces = [];
+
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true, powerPreference: 'high-performance' });
+    renderer.setSize(W, H);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+    renderer.shadowMap.enabled = !isMobile;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+
+    // Scene
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x070707, 0.14);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 100);
+    camera.position.set(0, 5.5, 7.5);
+    camera.lookAt(0, 0, 0);
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0x1a1208, 2.2));
+
+    const key = new THREE.DirectionalLight(0xc9a84c, 3.0);
+    key.position.set(4, 8, 6);
+    if (!isMobile) { key.castShadow = true; key.shadow.mapSize.set(1024, 1024); }
+    scene.add(key);
+
+    scene.add(Object.assign(new THREE.DirectionalLight(0x8090a0, 0.7), { position: new THREE.Vector3(-5, 3, -3) }));
+
+    const rimPt = new THREE.PointLight(0xdfc278, 3.5, 9);
+    rimPt.position.set(0, 5.5, -4); scene.add(rimPt);
+
+    const underGlow = new THREE.PointLight(0xc9a84c, 1.0, 6);
+    underGlow.position.set(0, -1, 0); scene.add(underGlow);
+
+    // ── Board ──────────────────────────────────────────────────────────────
+    const boardGroup = new THREE.Group();
+    scene.add(boardGroup);
+    const cellMeshes = [];
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const isLight = (r + c) % 2 === 0;
+        const geo = new THREE.BoxGeometry(0.98, 0.07, 0.98);
+        const mat = new THREE.MeshStandardMaterial({
+          color: isLight ? 0x1e1810 : 0x090706,
+          roughness: isLight ? 0.4 : 0.75,
+          metalness: isLight ? 0.35 : 0.1
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set((c - 3.5) * 1.0, 0, (r - 3.5) * 1.0);
+        if (!isMobile) mesh.receiveShadow = true;
+        mesh.userData = { glowing: false };
+        boardGroup.add(mesh); cellMeshes.push(mesh);
+      }
+    }
+
+    // Frame
+    const frameGeo = new THREE.BoxGeometry(8.4, 0.13, 8.4);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x0d0a06, roughness: 0.3, metalness: 0.7 });
+    boardGroup.add(Object.assign(new THREE.Mesh(frameGeo, frameMat), { position: new THREE.Vector3(0, -0.04, 0) }));
+
+    // Gold inlay
+    const inlayMat = new THREE.MeshStandardMaterial({ color: 0xc9a84c, roughness: 0.2, metalness: 0.9, emissive: 0xc9a84c, emissiveIntensity: 0.07 });
+    boardGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(8.15, 0.155, 8.15), inlayMat), { position: new THREE.Vector3(0, -0.03, 0) }));
+
+    // Base
+    const baseMat2 = new THREE.MeshStandardMaterial({ color: 0x080604, roughness: 0.2, metalness: 0.8 });
+    boardGroup.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(9.0, 0.28, 9.0), baseMat2), { position: new THREE.Vector3(0, -0.21, 0) }));
+
+    boardGroup.rotation.x = -0.36;
+    boardGroup.position.y = -1.1;
+
+    // Reflection floor
+    const refMat = new THREE.MeshStandardMaterial({ color: 0x050403, roughness: 0.06, metalness: 0.95, transparent: true, opacity: 0.38 });
+    const refPlane = new THREE.Mesh(new THREE.PlaneGeometry(20, 20), refMat);
+    refPlane.rotation.x = -Math.PI / 2; refPlane.position.y = -0.42;
+    scene.add(refPlane);
+
+    // ── Pieces ─────────────────────────────────────────────────────────────
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xc9a84c, roughness: 0.14, metalness: 0.96, emissive: 0xc9a84c, emissiveIntensity: 0.04 });
+
+    function addPiece(x, y, z, scale, floatSpd, floatOff) {
+      const g = new THREE.Group();
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.58, 0.12, 28), goldMat.clone());
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.44, 1.3, 22), goldMat.clone());
+      const top  = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 20), goldMat.clone());
+      base.position.y = 0.04; body.position.y = 0.76; top.position.y = 1.5;
+      g.add(base, body, top);
+      g.position.set(x, y + 0.06, z); g.scale.setScalar(scale);
+      if (!isMobile) g.castShadow = true;
+      g.userData = { floatSpd, floatOff, rotSpd: (Math.random()-.5)*.003, baseY: y + 0.06 };
+      scene.add(g); pieces.push(g);
+    }
+
+    addPiece(-4.5, 0.1, -1.8, 0.88, 0.38, 0.0);
+    addPiece( 5.0, 0.1,  1.2, 0.70, 0.42, 1.6);
+    addPiece(-5.5, 0.1,  2.0, 0.50, 0.32, 3.2);
+    addPiece( 5.5, 0.1, -2.8, 0.44, 0.46, 5.0);
+
+    // ── Particles ──────────────────────────────────────────────────────────
+    const pCount = isMobile ? 80 : 200;
+    const pPositions = new Float32Array(pCount * 3);
+    const pSizes = new Float32Array(pCount);
+    const pSpeeds = new Float32Array(pCount);
+    const pColors = new Float32Array(pCount * 3);
+    const gc = new THREE.Color(0xc9a84c), wc = new THREE.Color(0xf4f1eb);
+    for (let i = 0; i < pCount; i++) {
+      pPositions[i*3]   = (Math.random()-.5)*14;
+      pPositions[i*3+1] = (Math.random()-.5)*6;
+      pPositions[i*3+2] = (Math.random()-.5)*10;
+      pSizes[i]  = Math.random()*3.5+1;
+      pSpeeds[i] = Math.random()*.5+.2;
+      const t = Math.random(); const c = gc.clone().lerp(wc, t);
+      pColors[i*3]=c.r; pColors[i*3+1]=c.g; pColors[i*3+2]=c.b;
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+    pGeo.setAttribute('aSize',    new THREE.BufferAttribute(pSizes, 1));
+    pGeo.setAttribute('aSpeed',   new THREE.BufferAttribute(pSpeeds, 1));
+    pGeo.setAttribute('aColor',   new THREE.BufferAttribute(pColors, 3));
+
+    const pMat = new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uPixelRatio: { value: renderer.getPixelRatio() } },
+      vertexShader: `
+        attribute float aSize; attribute float aSpeed; attribute vec3 aColor;
+        varying vec3 vColor; varying float vAlpha; uniform float uTime; uniform float uPixelRatio;
+        void main() {
+          vColor = aColor;
+          vec3 pos = position;
+          pos.y += mod(aSpeed * uTime * 0.32, 6.0) - 3.0;
+          pos.x += sin(uTime * aSpeed * 0.22 + position.z * 1.4) * 0.11;
+          vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+          gl_Position = projectionMatrix * mvPos;
+          float alpha = 1.0 - abs(pos.y / 3.2);
+          vAlpha = clamp(alpha, 0.0, 1.0) * 0.62;
+          gl_PointSize = aSize * uPixelRatio * (260.0 / -mvPos.z);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor; varying float vAlpha;
+        void main() {
+          vec2 uv = gl_PointCoord - 0.5;
+          float mask = 1.0 - smoothstep(0.3, 0.5, length(uv));
+          gl_FragColor = vec4(vColor, mask * vAlpha);
+        }
+      `,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    scene.add(new THREE.Points(pGeo, pMat));
+
+    // ── Cell glow ──────────────────────────────────────────────────────────
+    setInterval(() => {
+      const cell = cellMeshes[Math.floor(Math.random() * cellMeshes.length)];
+      if (!cell.userData.glowing) {
+        cell.userData.glowing = true;
+        cell.material.emissive = new THREE.Color(0xc9a84c);
+        cell.material.emissiveIntensity = 0.52;
+        setTimeout(() => {
+          cell.material.emissive = new THREE.Color(0x000000);
+          cell.material.emissiveIntensity = 0;
+          cell.userData.glowing = false;
+        }, 1700 + Math.random() * 700);
+      }
+    }, 400);
+
+    // ── Events ─────────────────────────────────────────────────────────────
+    window.addEventListener('resize', () => {
+      const nW = hero.offsetWidth, nH = hero.offsetHeight;
+      camera.aspect = nW / nH; camera.updateProjectionMatrix();
+      renderer.setSize(nW, nH);
+    }, { passive: true });
+
+    if (!isTouch) {
+      hero.addEventListener('mousemove', e => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      }, { passive: true });
+    }
+
+    window.addEventListener('scroll', () => {
+      scrollProgress = Math.min(1, window.scrollY / window.innerHeight);
+    }, { passive: true });
+
+    // ── Animate ────────────────────────────────────────────────────────────
+    let af;
+    function animate() {
+      af = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      clock.getDelta(); // consume delta
+
+      // Mouse parallax
+      targetRot.x += (mouse.y * 0.1 - targetRot.x) * 0.04;
+      targetRot.y += (mouse.x * 0.12 - targetRot.y) * 0.04;
+      boardGroup.rotation.x = -0.36 + targetRot.x;
+      boardGroup.rotation.y = targetRot.y;
+
+      // Scroll camera drift
+      camera.position.y = 5.5 - scrollProgress * 2.2;
+      camera.position.z = 7.5 + scrollProgress * 2.8;
+      camera.lookAt(0, -scrollProgress * 0.4, 0);
+
+      // Float pieces
+      pieces.forEach(p => {
+        p.position.y = p.userData.baseY + Math.sin(t * p.userData.floatSpd + p.userData.floatOff) * 0.13;
+        p.rotation.y += p.userData.rotSpd;
+      });
+
+      // Particles time
+      pMat.uniforms.uTime.value = t;
+
+      // Under glow pulse
+      underGlow.intensity = 0.7 + Math.sin(t * 1.7) * 0.45;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // GSAP entrance animation for board
+    if (typeof gsap !== 'undefined') {
+      gsap.from(boardGroup.rotation, { x: -1.5, duration: 2.8, ease: 'power4.out', delay: 0.2 });
+      gsap.from(boardGroup.position, { y: -3, duration: 2.8, ease: 'power4.out', delay: 0.2 });
+      gsap.from(boardGroup, { onUpdate: () => {}, delay: 0.2, duration: 0.01 });
+    }
+  }
+
+  // ─── CSS Board Fallback ─────────────────────────────────────────────────
+  function initCSSBoardFallback() {
+    const wrap = document.getElementById('css-board-wrap');
+    if (wrap) wrap.style.display = 'block';
+    const grid = document.getElementById('css-board-grid');
+    if (!grid) return;
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'board-cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+        grid.appendChild(cell);
+      }
+    }
+    const cells = grid.querySelectorAll('.board-cell');
+    setInterval(() => {
+      const cell = cells[Math.floor(Math.random() * 64)];
+      if (!cell.dataset.g) {
+        cell.dataset.g = '1';
+        cell.classList.add('active-glow');
+        setTimeout(() => { cell.classList.remove('active-glow'); delete cell.dataset.g; }, 1800);
+      }
+    }, 400);
+    if (!isTouch) {
+      const hero = document.getElementById('hero');
+      const stage = document.getElementById('css-board-stage');
+      if (hero && stage) {
+        hero.addEventListener('mousemove', e => {
+          const r = hero.getBoundingClientRect();
+          const cx = (e.clientX - r.left) / r.width - 0.5;
+          const cy = (e.clientY - r.top) / r.height - 0.5;
+          stage.style.transform = `translateX(-50%) rotateX(${55 + cy * 6}deg) rotateZ(${cx * 3}deg)`;
+        }, { passive: true });
+        hero.addEventListener('mouseleave', () => {
+          stage.style.transform = 'translateX(-50%) rotateX(55deg) rotateZ(0deg)';
+        });
+      }
+    }
+  }
+
+  // ─── Cursor ─────────────────────────────────────────────────────────────
+  function initCursor() {
+    if (isTouch) return;
+    const dot = document.getElementById('cur-dot');
+    const ring = document.getElementById('cur-ring');
+    const label = document.getElementById('cur-label');
+    if (!dot || !ring) return;
+    let mx = -100, my = -100, rx = -100, ry = -100;
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      dot.style.left = mx + 'px'; dot.style.top = my + 'px';
+      if (label) { label.style.left = mx + 'px'; label.style.top = my + 'px'; }
+    });
+    (function loop() {
+      rx += (mx - rx) * 0.10; ry += (my - ry) * 0.10;
+      ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a,button,.team-card,.svc-card,.ev-item,.soc-btn,[data-cursor]').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        document.body.classList.add('cur-hover');
+        if (label && el.dataset.cursor) label.textContent = el.dataset.cursor;
+      });
+      el.addEventListener('mouseleave', () => {
+        document.body.classList.remove('cur-hover');
+        if (label) label.textContent = '';
+      });
+    });
+  }
+
+  // ─── Nav stuck ──────────────────────────────────────────────────────────
+  function initNav() {
+    const nav = document.getElementById('topnav');
+    if (!nav) return;
+    window.addEventListener('scroll', () => nav.classList.toggle('stuck', scrollY > 70), { passive: true });
+  }
+
+  // ─── Progress bar ───────────────────────────────────────────────────────
+  function initProgress() {
+    const bar = document.getElementById('progress-bar');
+    if (!bar) return;
+    window.addEventListener('scroll', () => {
+      const h = document.documentElement;
+      bar.style.width = (h.scrollTop / (h.scrollHeight - h.clientHeight) * 100) + '%';
+    }, { passive: true });
+  }
+
+  // ─── Hamburger ──────────────────────────────────────────────────────────
+  function initHam() {
+    const btn = document.getElementById('ham-btn');
+    const menu = document.getElementById('mob-menu');
+    const links = document.querySelectorAll('.mob-nav-link');
+    if (!btn || !menu) return;
+    const open  = () => { btn.classList.add('open'); menu.classList.add('open'); btn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; };
+    const close = () => { btn.classList.remove('open'); menu.classList.remove('open'); btn.setAttribute('aria-expanded','false'); document.body.style.overflow=''; };
+    btn.addEventListener('click', () => menu.classList.contains('open') ? close() : open());
+    links.forEach(l => {
+      l.addEventListener('click', close);
+      l.addEventListener('touchend', function(e) {
+        e.preventDefault(); const href = this.getAttribute('href'); close();
+        setTimeout(() => { const t = document.querySelector(href); if (t) t.scrollIntoView({ behavior: 'smooth' }); }, 320);
+      }, { passive: false });
+    });
+    menu.addEventListener('click', e => { if (e.target === menu) close(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && menu.classList.contains('open')) close(); });
+  }
+
+  // ─── Magnetic buttons ───────────────────────────────────────────────────
+  function initMagnetic() {
+    if (isTouch || typeof gsap === 'undefined') return;
+    document.querySelectorAll('.btn-magnetic').forEach(wrap => {
+      const btn = wrap.firstElementChild;
+      if (!btn) return;
+      wrap.addEventListener('mousemove', e => {
+        const r = wrap.getBoundingClientRect();
+        gsap.to(btn, { x: (e.clientX - r.left - r.width/2) * 0.36, y: (e.clientY - r.top - r.height/2) * 0.36, duration: .4, ease: 'power2.out' });
+      });
+      wrap.addEventListener('mouseleave', () => {
+        gsap.to(btn, { x: 0, y: 0, duration: .65, ease: 'elastic.out(1.2, 0.5)' });
+      });
+    });
+  }
+
+  // ─── GSAP animations ────────────────────────────────────────────────────
+  function initGSAP() {
+    if (typeof gsap === 'undefined') return;
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Lenis sync
+    if (typeof Lenis !== 'undefined') {
+      const lenis = new Lenis({ duration: 1.25, easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
+      const rafFn = t => { lenis.raf(t); requestAnimationFrame(rafFn); };
+      requestAnimationFrame(rafFn);
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add(t => lenis.raf(t * 1000));
+      gsap.ticker.lagSmoothing(0);
+    }
+
+    // Hero entrance
+    const tl = gsap.timeline({ delay: 0.3 });
+    tl.to('.h-phase',   { opacity: 1, y: 0, duration: .9, ease: 'power3.out' })
+      .to('.h-title',   { opacity: 1, y: 0, duration: 1.0, ease: 'power3.out' }, '-=.5')
+      .to('.h-divider', { opacity: 1, y: 0, duration: .8, ease: 'power3.out' }, '-=.6')
+      .to('.h-sub',     { opacity: 1, y: 0, duration: .9, ease: 'power3.out' }, '-=.55')
+      .to('.h-actions', { opacity: 1, y: 0, duration: .9, ease: 'power3.out' }, '-=.55')
+      .to('.h-scroll',  { opacity: 1, y: 0, duration: .8, ease: 'power3.out' }, '-=.4')
+      .add(() => { const uw = document.querySelector('.underline-word'); if (uw) uw.classList.add('line-reveal'); }, '-=.3');
+
+    // Scroll reveals
+    gsap.utils.toArray('.gsap-reveal').forEach(el => {
+      gsap.to(el, { opacity: 1, y: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%' } });
+    });
+    gsap.utils.toArray('.gsap-reveal-scale').forEach((el, i) => {
+      gsap.to(el, { opacity: 1, scale: 1, duration: 1.1, ease: 'power3.out', delay: i * 0.065, scrollTrigger: { trigger: el, start: 'top 90%' } });
+    });
+
+    // Counters
+    document.querySelectorAll('.stat-num[data-count]').forEach(el => {
+      const target = parseInt(el.dataset.count);
+      const supHTML = (el.querySelector('sup') || {}).outerHTML || '';
+      let started = false;
+      ScrollTrigger.create({ trigger: el, start: 'top 85%', onEnter: () => {
+        if (started) return; started = true;
+        gsap.to({ val: 0 }, { val: target, duration: 2.4, ease: 'power2.out', onUpdate: function() { el.innerHTML = Math.round(this.targets()[0].val) + supHTML; } });
+      }});
+    });
+
+    // Phase watermarks
+    document.querySelectorAll('.sec-phase').forEach(el => {
+      gsap.fromTo(el, { x: -70, opacity: 0 }, { x: 0, opacity: 1, duration: 1.5, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+    });
+
+    // 3D card tilt
+    if (!isTouch) {
+      document.querySelectorAll('.svc-card, .team-card').forEach(card => {
+        const isService = card.classList.contains('svc-card');
+        card.addEventListener('mousemove', e => {
+          const r = card.getBoundingClientRect();
+          const cx = (e.clientX - r.left) / r.width - 0.5;
+          const cy = (e.clientY - r.top) / r.height - 0.5;
+          gsap.to(card, { rotateY: cx * (isService ? 9 : 6), rotateX: -cy * (isService ? 6 : 5), duration: .45, ease: 'power2.out', transformPerspective: 700 });
+        });
+        card.addEventListener('mouseleave', () => {
+          gsap.to(card, { rotateY: 0, rotateX: 0, duration: .7, ease: 'power3.out' });
+        });
+      });
+    }
+  }
+
+  // ─── Init ───────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    initCursor();
+    initNav();
+    initProgress();
+    initHam();
+    initChessEngine();
+    initMagnetic();
+
+    if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+      initGSAP();
+    } else {
+      window.addEventListener('load', initGSAP);
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
